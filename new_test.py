@@ -43,6 +43,7 @@ def solve(seed, inp, log):
     
     while cars:
         next_itr = []
+        random.shuffle(cars)
         for c in cars:
             if len(orders) == 0:
                 continue
@@ -52,9 +53,10 @@ def solve(seed, inp, log):
             bestr = None
             sframme = None
             target = (random.randint(0, R-1), random.randint(0, C-1))
+
             xi = float(X)/len(orders)
             yi = float(Y)/len(orders)
-            w = 1
+            w = 1 # 0.5 + random.random()
             for r in orders:
                 d = dist(r.p_s, (c[1],c[2]))
                 
