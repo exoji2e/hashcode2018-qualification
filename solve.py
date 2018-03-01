@@ -104,6 +104,7 @@ def score(inp, out):
         for i in ride_set:
             dist_miss += rides[i].p_s.dist(rides[i].p_f)
 
+        print("F: {}, N: {}, B: {}".format(F, N, B))
         print("bonus_miss_ratio: {:.0f}%, bonus_miss_score: {}, ride_miss: {}, dist_miss: {}".format(100*float(bonus_miss)/N, bonus_miss_score, len(ride_set), dist_miss))
         #show(out)
 
