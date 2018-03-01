@@ -7,12 +7,10 @@ from collections import namedtuple
 Ride = namedtuple('Ride', ['i', 'p_s', 'p_f', 't_s', 't_f'])
 Coord = namedtuple('Point', ['x', 'y'])
 
+
 class Point(Coord):
     def dist(self, other):
         return sum((abs(self.x - other.x), abs(self.y - other.y)))
-
-
-
 
 
 def parse(inp):
@@ -71,7 +69,7 @@ def score(inp, out):
     if __name__ == '__main__' and args.s:
         bonus_miss_score = bonus_miss * B
         print("bonus_miss: {}, bonus_miss_score: {}, ride_miss: {}, dist_miss: {}".format(bonus_miss, bonus_miss_score, ride_miss, dist_miss))
-        show(out)
+        #show(out)
 
     return score
 
