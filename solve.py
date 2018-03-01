@@ -74,6 +74,8 @@ def score(inp, out):
     B, T, rides, C, R, N, F = ns.B, ns.T, ns.rides, ns.C, ns.R, ns.N, ns.F
 
     bonus_miss, ride_miss, dist_miss = 0, 0, 0
+    ride_waste = 0
+    tot_dist = 0
 
     itr = (map(int, li.split()) for li in out.split('\n'))
     score = 0
@@ -88,6 +90,7 @@ def score(inp, out):
             assert i in ride_set
             ride_set -= {i}
             start = max(r.p_s.dist(cur_p), r.t_s)
+            ride_waste += r.p_s.dist(cur_p) + start - r.t_s
             if start == r.t_s:
                 score += B
             else:
@@ -95,6 +98,7 @@ def score(inp, out):
             dist = r.p_s.dist(r.p_f)
             assert start + dist <= r.t_f
             cur_p = r.p_f
+            tot_dist += dist
             score += dist
 
     assert (B, T, rides, C, R, N, F) == (ns.B, ns.T, ns.rides, ns.C, ns.R, ns.N, ns.F)
@@ -106,6 +110,7 @@ def score(inp, out):
 
         print("F: {}, N: {}, B: {}".format(F, N, B))
         print("bonus_miss_ratio: {:.0f}%, bonus_miss_score: {}, ride_miss: {}, dist_miss: {}".format(100*float(bonus_miss)/N, bonus_miss_score, len(ride_set), dist_miss))
+        print("ride_waste: {} ({:.0f}%)".format(ride_waste, (ride_waste * 100.) / (ride_waste + tot_dist)))
         #show(out)
 
     return score
