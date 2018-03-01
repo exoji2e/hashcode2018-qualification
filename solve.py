@@ -51,7 +51,7 @@ def solve(seed, inp, log):
                     best = i
                     bestc = c
         if best != -1:
-            t_f = d + bestc[0] + dist(r.p_s, r.p_f)
+            t_f = max(d + bestc[0], r.t_s) + dist(r.p_s, r.p_f)
             if t_f <= T:
                 car2[best].append(r.i)
                 cars[best] = (t_f, r.p_f[0], r.p_f[1])
