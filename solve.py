@@ -9,7 +9,7 @@ Ride = namedtuple('Ride', ['i', 'p_s', 'p_f', 't_s', 't_f'])
 
 def parse(inp):
     # TODO: implement
-    itr = (map(int, li.split()) for li in inp.split('\n'))
+    itr = (map(int, li.split()) for li in inp.split('\n') if li)
     R, C, F, N, B, T = next(itr)
     rides = [Ride(i, (a, b), (x, y), s, f) for i, (a, b, x, y, s, f) in enumerate(itr)]
 
