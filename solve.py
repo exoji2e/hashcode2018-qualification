@@ -77,13 +77,16 @@ def score(inp, out):
 
     itr = (map(int, li.split()) for li in out.split('\n'))
     score = 0
+    ride_set = set(range(N))
     for i in range(F):
         li = next(itr)
         M = li[0]
         ride_ids = li[1:]
         assert len(ride_ids) == M
         cur_p = Point(0, 0)
-        for r in (rides[i] for i in ride_ids):
+        for i, r in ((i, rides[i]) for i in ride_ids):
+            assert i in ride_set
+            ride_set -= {i}
             start = max(r.p_s.dist(cur_p), r.t_s)
             if start == r.t_s:
                 score += B
@@ -98,7 +101,10 @@ def score(inp, out):
 
     if __name__ == '__main__' and args.s:
         bonus_miss_score = bonus_miss * B
-        print("bonus_miss: {}, bonus_miss_score: {}, ride_miss: {}, dist_miss: {}".format(bonus_miss, bonus_miss_score, ride_miss, dist_miss))
+        for i in ride_set:
+            dist_miss += rides[i].p_s.dist(rides[i].p_f)
+
+        print("bonus_miss_ratio: {:.0f}%, bonus_miss_score: {}, ride_miss: {}, dist_miss: {}".format(100*float(bonus_miss)/N, bonus_miss_score, len(ride_set), dist_miss))
         #show(out)
 
     return score
