@@ -86,10 +86,11 @@ def score(inp, out):
         ride_ids = li[1:]
         assert len(ride_ids) == M
         cur_p = Point(0, 0)
+        time = 0
         for i, r in ((i, rides[i]) for i in ride_ids):
             assert i in ride_set
             ride_set -= {i}
-            start = max(r.p_s.dist(cur_p), r.t_s)
+            start = max(time + r.p_s.dist(cur_p), r.t_s)
             ride_waste += r.p_s.dist(cur_p) + start - r.t_s
             if start == r.t_s:
                 score += B
@@ -100,6 +101,7 @@ def score(inp, out):
             cur_p = r.p_f
             tot_dist += dist
             score += dist
+            time = start + dist
 
     assert (B, T, rides, C, R, N, F) == (ns.B, ns.T, ns.rides, ns.C, ns.R, ns.N, ns.F)
 
