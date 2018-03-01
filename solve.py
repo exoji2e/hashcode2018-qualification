@@ -5,24 +5,31 @@ import glob
 from collections import namedtuple
 
 Ride = namedtuple('Ride', ['i', 'p_s', 'p_f', 't_s', 't_f'])
+Coord = namedtuple('Point', ['x', 'y'])
+
+class Point(Coord):
+    def dist(self, other):
+        return sum((abs(self.x - other.x), abs(self.y - other.y)))
+
+
+
 
 
 def parse(inp):
-    # TODO: implement
     itr = (map(int, li.split()) for li in inp.split('\n') if li)
     R, C, F, N, B, T = next(itr)
-    rides = [Ride(i, (a, b), (x, y), s, f) for i, (a, b, x, y, s, f) in enumerate(itr)]
+    rides = [Ride(i, Point(a, b), Point(x, y), s, f) for i, (a, b, x, y, s, f) in enumerate(itr)]
 
-    return argparse.Namespace(B=B, T=T, rides=rides, itr=itr, C=C, R=R, N=N, F=F)
+    return argparse.Namespace(B=B, T=T, rides=rides, C=C, R=R, N=N, F=F)
 
 
 def solve(seed, inp, log):
     # TODO: Solve the problem
     random.seed(seed)
     ns = parse(inp)
-    B, T, rides, itr, C, R, N, F = ns.B, ns.T, ns.rides, ns.itr, ns.C, ns.R, ns.N, ns.F
+    B, T, rides, C, R, N, F = ns.B, ns.T, ns.rides, ns.C, ns.R, ns.N, ns.F
     
-    assert (B, T, rides, itr, C, R, N, F) == (ns.B, ns.T, ns.rides, ns.itr, ns.C, ns.R, ns.N, ns.F)
+    assert (B, T, rides, C, R, N, F) == (ns.B, ns.T, ns.rides, ns.C, ns.R, ns.N, ns.F)
 
     return '0'
 
@@ -33,12 +40,32 @@ def show(out):
 
 
 def score(inp, out):
-    # TODO: implement
+    ns = parse(inp)
+    B, T, rides, C, R, N, F = ns.B, ns.T, ns.rides, ns.C, ns.R, ns.N, ns.F
+
+    itr = (map(int, li.split()) for li in out.split('\n'))
+    score = 0
+    for i in range(F):
+        li = next(itr)
+        M = li[0]
+        ride_ids = li[1:]
+        assert len(ride_ids) == M
+        cur_p = Point(0, 0)
+        for r in (rides[i] for i in ride_ids):
+            start = max(r.p_s.dist(cur_p), r.t_s)
+            if start == r.t_s:
+                score += B
+            dist = r.p_s.dist(r.p_f)
+            assert start + dist <= r.t_f
+            cur_p = r.p_f
+            score += dist
+
+    assert (B, T, rides, C, R, N, F) == (ns.B, ns.T, ns.rides, ns.C, ns.R, ns.N, ns.F)
 
     if __name__ == '__main__' and args.s:
         show(out)
 
-    return 0
+    return score
 
 
 def get_args():
