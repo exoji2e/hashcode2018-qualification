@@ -75,6 +75,8 @@ def score(inp, out):
     ns = parse(inp)
     B, T, rides, C, R, N, F = ns.B, ns.T, ns.rides, ns.C, ns.R, ns.N, ns.F
 
+    bonus_miss, ride_miss, dist_miss = 0, 0, 0
+
     itr = (map(int, li.split()) for li in out.split('\n'))
     score = 0
     for i in range(F):
@@ -83,18 +85,24 @@ def score(inp, out):
         ride_ids = li[1:]
         assert len(ride_ids) == M
         cur_p = Point(0, 0)
+        time = 0
         for r in (rides[i] for i in ride_ids):
-            start = max(r.p_s.dist(cur_p), r.t_s)
+            start = max(time + r.p_s.dist(cur_p), r.t_s)
             if start == r.t_s:
                 score += B
+            else:
+                bonus_miss += 1
             dist = r.p_s.dist(r.p_f)
             #assert start + dist <= r.t_f
             cur_p = r.p_f
+            time = start + dist
             score += dist
 
     assert (B, T, rides, C, R, N, F) == (ns.B, ns.T, ns.rides, ns.C, ns.R, ns.N, ns.F)
 
     if __name__ == '__main__' and args.s:
+        bonus_miss_score = bonus_miss * B
+        print("bonus_miss: {}, bonus_miss_score: {}, ride_miss: {}, dist_miss: {}".format(bonus_miss, bonus_miss_score, ride_miss, dist_miss))
         show(out)
 
     return score
