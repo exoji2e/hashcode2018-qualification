@@ -3,13 +3,14 @@ import argparse
 import random
 import glob
 
-
+Ride = namedtuple('Ride', ['p_s', 'p_f', 't_s', 't_f'])
 def parse(inp):
     # TODO: implement
     itr = (map(int, li.split()) for li in inp.split('\n'))
-    r, c = next(itr)
+    R, C, F, N, B, T = next(itr)
+    rides = [Ride((a, b), (x, y), s, f) for a, b, x, y, s, f in itr]
 
-    return argparse.Namespace(r=r, c=c)
+    return argparse.Namespace(B=B, T=T, rides=rides, itr=itr, C=C, R=R, N=N, F=F)
 
 
 def solve(seed, inp, log):
