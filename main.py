@@ -1,4 +1,4 @@
-#!/usr/bin/env pypy2
+#!/usr/bin/env pypy
 import argparse
 import logging as log
 from random import randint as ri

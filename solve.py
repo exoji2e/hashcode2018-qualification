@@ -1,4 +1,4 @@
-#!/usr/bin/env pypy2
+#!/usr/bin/env pypy
 import argparse
 import random
 import glob
