@@ -28,7 +28,7 @@ def solve(seed, inp, log):
     B, T, rides, C, R, N, F = ns.B, ns.T, ns.rides, ns.C, ns.R, ns.N, ns.F
     def dist(a, b):
         return abs(a[0] - b[0]) + abs(a[1] - b[1])
-    
+
     assert (B, T, rides, C, R, N, F) == (ns.B, ns.T, ns.rides, ns.C, ns.R, ns.N, ns.F)
 
     cars = [(0, 0, 0)]*F
@@ -68,7 +68,6 @@ def show(out):
     # TODO: Print the solution here
     print(out)
 
-
 def score(inp, out):
     ns = parse(inp)
     B, T, rides, C, R, N, F = ns.B, ns.T, ns.rides, ns.C, ns.R, ns.N, ns.F
@@ -76,6 +75,8 @@ def score(inp, out):
     bonus_miss, ride_miss, dist_miss = 0, 0, 0
     ride_waste = 0
     tot_dist = 0
+
+    paths = []
 
     itr = (map(int, li.split()) for li in out.split('\n'))
     score = 0
@@ -87,8 +88,10 @@ def score(inp, out):
         assert len(ride_ids) == M
         cur_p = Point(0, 0)
         time = 0
+        path = [cur_p]
         for i, r in ((i, rides[i]) for i in ride_ids):
             assert i in ride_set
+            path.append(r.p_s)
             ride_set -= {i}
             start = max(time + r.p_s.dist(cur_p), r.t_s)
             ride_waste += r.p_s.dist(cur_p) + start - r.t_s
@@ -102,6 +105,8 @@ def score(inp, out):
             tot_dist += dist
             score += dist
             time = start + dist
+            path.append(cur_p)
+        paths.append(path)
 
     assert (B, T, rides, C, R, N, F) == (ns.B, ns.T, ns.rides, ns.C, ns.R, ns.N, ns.F)
 
@@ -114,6 +119,38 @@ def score(inp, out):
         print("bonus_miss_ratio: {:.0f}%, bonus_miss_score: {}, ride_miss: {}, dist_miss: {}".format(100*float(bonus_miss)/N, bonus_miss_score, len(ride_set), dist_miss))
         print("ride_waste: {} ({:.0f}%)".format(ride_waste, (ride_waste * 100.) / (ride_waste + tot_dist)))
         #show(out)
+
+    if __name__ == "__main__" and args.s:
+        from matplotlib.figure import Figure
+        from matplotlib.axes import Axes
+        from matplotlib.lines import Line2D
+        from matplotlib.backends.backend_agg import FigureCanvasAgg
+        import numpy as np
+
+        def norm_pair(p):
+            return (float(p[0]) / R, float(p[1]) / C)
+
+        fig = Figure(figsize=[16 * 4, 16 * 4])
+        ax = Axes(fig, [.1, .1, .8, .8])
+        fig.add_axes(ax)
+        for path in paths:
+            for i, (prev, nxt) in enumerate(zip(path[0:], path[1:])):
+                prev_norm, nxt_norm = norm_pair(prev), norm_pair(nxt)
+                line = Line2D((prev_norm[0], nxt_norm[0]), (prev_norm[1], nxt_norm[1]),
+                              color='blue' if i % 2 else 'yellow')
+                #ax.add_line(line)
+
+        for ride in (rides[i] for i in ride_set):
+            prev_norm, nxt_norm = norm_pair(ride.p_s), norm_pair(ride.p_f)
+            t = float(ride.t_s) / T
+            print(t, ride.t_s, T)
+            line = Line2D((prev_norm[0], nxt_norm[0]), (prev_norm[1], nxt_norm[1]),
+                          color=np.array([0, 1, 1]) + np.array([1, 0, 0])*t)
+            ax.add_line(line)
+
+        canvas = FigureCanvasAgg(fig)
+        canvas.print_figure("line_ex.png")
+
 
     return score
 
