@@ -20,14 +20,14 @@ def parse(inp):
 
     return argparse.Namespace(B=B, T=T, rides=rides, C=C, R=R, N=N, F=F)
 
-def dist(a, b):
-    return abs(a[0] - b[0]) + abs(a[1] - b[1])
 
 def solve(seed, inp, log):
     # TODO: Solve the problem
     random.seed(seed)
     ns = parse(inp)
     B, T, rides, C, R, N, F = ns.B, ns.T, ns.rides, ns.C, ns.R, ns.N, ns.F
+    def dist(a, b):
+        return abs(a[0] - b[0]) + abs(a[1] - b[1])
     
     assert (B, T, rides, C, R, N, F) == (ns.B, ns.T, ns.rides, ns.C, ns.R, ns.N, ns.F)
 
