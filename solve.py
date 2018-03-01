@@ -2,13 +2,16 @@
 import argparse
 import random
 import glob
+from collections import namedtuple
 
-Ride = namedtuple('Ride', ['p_s', 'p_f', 't_s', 't_f'])
+Ride = namedtuple('Ride', ['i', 'p_s', 'p_f', 't_s', 't_f'])
+
+
 def parse(inp):
     # TODO: implement
     itr = (map(int, li.split()) for li in inp.split('\n'))
     R, C, F, N, B, T = next(itr)
-    rides = [Ride((a, b), (x, y), s, f) for a, b, x, y, s, f in itr]
+    rides = [Ride(i, (a, b), (x, y), s, f) for i, (a, b, x, y, s, f) in enumerate(itr)]
 
     return argparse.Namespace(B=B, T=T, rides=rides, itr=itr, C=C, R=R, N=N, F=F)
 
@@ -17,6 +20,9 @@ def solve(seed, inp, log):
     # TODO: Solve the problem
     random.seed(seed)
     ns = parse(inp)
+    B, T, rides, itr, C, R, N, F = ns.B, ns.T, ns.rides, ns.itr, ns.C, ns.R, ns.N, ns.F
+    
+    assert (B, T, rides, itr, C, R, N, F) == (ns.B, ns.T, ns.rides, ns.itr, ns.C, ns.R, ns.N, ns.F)
 
     return '0'
 
