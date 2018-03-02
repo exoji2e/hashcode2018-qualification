@@ -3,6 +3,7 @@ import argparse
 import random
 import glob
 from collections import namedtuple
+from sortedcontainers import SortedList
 
 Ride = namedtuple('Ride', ['i', 'p_s', 'p_f', 't_s', 't_f'])
 Coord = namedtuple('Point', ['x', 'y'])
@@ -31,7 +32,7 @@ def solve(seed, inp, log):
     
     assert (B, T, rides, C, R, N, F) == (ns.B, ns.T, ns.rides, ns.C, ns.R, ns.N, ns.F)
 
-    cars = [(0, 0, 0, i) for i in range(F)]
+    cars = SortedList([(0, 0, 0, i) for i in range(F)])
 
     orders = set(rides)
 
@@ -40,57 +41,76 @@ def solve(seed, inp, log):
     no = 0
     X = sum(r.p_s[0] for r in orders)
     Y = sum(r.p_s[1] for r in orders)
+    carss = [0]*F
+    lastsc = [0]*F
+    
     
     while cars:
-        next_itr = []
-        random.shuffle(cars)
-        for c in cars:
-            if len(orders) == 0:
-                continue
-            i = c[-1]
-            log.debug(i)
-            minsc = 0
-            bestr = None
-            sframme = None
-            target = (random.randint(0, R-1), random.randint(0, C-1))
+        c = cars.pop(0)
+        if len(orders) == 0:
+            continue
+        i = c[-1]
+        log.debug(i)
+        minsc = 0
+        bestr = None
+        sframme = None
+        target = (random.randint(0, R-1), random.randint(0, C-1))
 
-            xi = float(X)/len(orders)
-            yi = float(Y)/len(orders)
-            w = 1 # 0.5 + random.random()
-            for r in orders:
-                d = dist(r.p_s, (c[1],c[2]))
-                
-                framme = d + c[0]
-                waste = d + max(0, r.t_s - framme)
-                lastarr = r.t_f - dist(r.p_s, r.p_f)
-                if framme > lastarr: continue
-
-                pts = dist(r.p_s, r.p_f) + (B if framme <= r.t_s else 0)
-
-                fac = random.random()*10
-
-                # sc = float(pts)/(waste*fac+ dist(r.p_s, r.p_f))
-                #sc = float(pts)/(dist((xi, yi), r.p_s)*(waste + 1)) if no > 0 else float(dist(target, r.p_s))/max(r.t_s - framme, 1)
-                sc = float(pts)/((w*dist((xi, yi), r.p_s) + (2-w)*dist((xi, yi), r.p_f))*(waste + 1))
-                if sc > minsc:
-                    minsc = sc
-                    bestr = r
-                    sframme = framme
-            if bestr:
-                car2[i].append(bestr.i)
-                orders.remove(bestr)
-                c = (max(sframme, bestr.t_s) + dist(bestr.p_s, bestr.p_f), bestr.p_f[0], bestr.p_f[1], c[-1])
-                next_itr.append(c)
-                X -= bestr.p_s[0]
-                Y -= bestr.p_s[1]
-        no += 1
-        cars = next_itr
-
-
+        xi = float(X)/len(orders)
+        yi = float(Y)/len(orders)
+        w = 1 # 0.5 + random.random()
+        for r in orders:
+            d = dist(r.p_s, (c[1],c[2]))
             
-            
+            framme = d + c[0]
+            waste = d + max(0, r.t_s - framme)
+            lastarr = r.t_f - dist(r.p_s, r.p_f)
+            if framme > lastarr: continue
+
+            pts_real = dist(r.p_s, r.p_f) + (B if framme <= r.t_s else 0)
+            pts = dist(r.p_s, r.p_f) + (B if framme <= r.t_s else 0)
+
+            # fac = random.random()*10
+
+            # sc = float(pts)/(waste*fac+ dist(r.p_s, r.p_f))
+            #sc = float(pts)/(dist((xi, yi), r.p_s)*(waste + 1)) if no > 0 else float(dist(target, r.p_s))/max(r.t_s - framme, 1)
+            sc = float(pts)/((dist((xi, yi), r.p_s) + dist((xi, yi), r.p_f))*(waste + 1))
+            #sc = float(pts)/((dist((xi, yi), r.p_f))*(waste + 1))
+            if sc > minsc:
+                minsc = sc
+                bestr = r
+                sframme = framme
+                pts2 = pts_real
+        if bestr:
+            car2[i].append(bestr.i)
+            orders.remove(bestr)
+            carss[i] = c
+            lastsc[i] = pts2
+            c = (max(sframme, bestr.t_s) + dist(bestr.p_s, bestr.p_f), bestr.p_f[0], bestr.p_f[1], c[-1])
+            cars.add(c)
+            X -= bestr.p_s[0]
+            Y -= bestr.p_s[1]
+    
 
     out = []
+    for i, c in enumerate(car2):
+        r1 = rides[c[-2]]
+        r2 = rides[c[-1]]
+        maxsc = 0
+        br = None
+        for r in orders:
+            arrive = carss[i][0] + dist(r1.p_f, r.p_s)
+            if arrive + dist(r.p_s, r.p_f) <= r.t_f:
+                sc = dist(r.p_s, r.p_f) + (B if arrive <= r.t_s else 0)
+                if sc > maxsc:
+                    br = r
+                    maxsc = sc
+        if maxsc > lastsc[i]:
+            log.warning('Updating score: {} {}'.format(lastsc[i], maxsc))
+            orders.add(r2)
+            orders.remove(br)
+            c[-1] = br.i
+                    
     for v in car2:
         s = str(len(v)) + ' '
         s += ' '.join(map(str, v))
