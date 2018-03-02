@@ -137,16 +137,27 @@ def score(inp, out):
             for i, (prev, nxt) in enumerate(zip(path[0:], path[1:])):
                 prev_norm, nxt_norm = norm_pair(prev), norm_pair(nxt)
                 line = Line2D((prev_norm[0], nxt_norm[0]), (prev_norm[1], nxt_norm[1]),
-                              color='blue' if i % 2 else 'yellow')
-                #ax.add_line(line)
+                              color='blue' if i % 2 else 'orange')
+                ax.add_line(line)
 
+        zeros = []
+
+        #for ride in (rides[i] for i in set(range(N)) - ride_set):
         for ride in (rides[i] for i in ride_set):
             prev_norm, nxt_norm = norm_pair(ride.p_s), norm_pair(ride.p_f)
             t = float(ride.t_s) / T
-            print(t, ride.t_s, T)
+            #print(t, ride.t_s)
             line = Line2D((prev_norm[0], nxt_norm[0]), (prev_norm[1], nxt_norm[1]),
                           color=np.array([0, 1, 1]) + np.array([1, 0, 0])*t)
             ax.add_line(line)
+
+        for ride in rides:
+            zeros.append(list(ride.p_s) + list(ride.p_f) + [ride.t_s, ride.t_f])
+
+        with open("zeros.csv", "w") as f:
+            for z in zeros:
+                f.write(",".join(map(str, z)) + "\n")
+
 
         canvas = FigureCanvasAgg(fig)
         canvas.print_figure("line_ex.png")
