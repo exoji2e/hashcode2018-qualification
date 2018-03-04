@@ -17,7 +17,7 @@ Score during the competition, giving us the 62nd place:
 |sum| 49,267,243|
 
 
-After the competition we did some clean ups and improvmenets resluting in:
+After the competition we did some clean ups and improvements resluting in:
 
 |Testcase | Score|
 |---|---:|
