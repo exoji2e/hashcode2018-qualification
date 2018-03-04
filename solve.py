@@ -3,9 +3,11 @@ import argparse
 import random
 import glob
 from collections import namedtuple
+from sortedcontainers import SortedList
 
 Ride = namedtuple('Ride', ['i', 'p_s', 'p_f', 't_s', 't_f'])
 Coord = namedtuple('Point', ['x', 'y'])
+CarState = namedtuple('CarState', ['t', 'p_s', 'p_f', 'win', 'i', 'order'])
 
 
 class Point(Coord):
@@ -21,46 +23,105 @@ def parse(inp):
     return argparse.Namespace(B=B, T=T, rides=rides, C=C, R=R, N=N, F=F)
 
 
+def dist(a, b):
+    return abs(a[0] - b[0]) + abs(a[1] - b[1])
+
+
 def solve(seed, inp, log):
-    # TODO: Solve the problem
     random.seed(seed)
     ns = parse(inp)
     B, T, rides, C, R, N, F = ns.B, ns.T, ns.rides, ns.C, ns.R, ns.N, ns.F
-    def dist(a, b):
-        return abs(a[0] - b[0]) + abs(a[1] - b[1])
+
+    orders = set(rides)
+
+    X = sum(r.p_s[0] for r in orders)
+    Y = sum(r.p_s[1] for r in orders)
+
+    CarStates = [[CarState(0, Point(0, 0), Point(0, 0), 0, i, -1)] for i in range(F)]
+    cars = SortedList([CarStates[i][0] for i in range(F)])
+    pw = 1 + 4*random.random()
+    pp = 0.5 + 0.5*random.random()
+    wf = 1 + 5*random.random()
+    bw = 2*random.random()
+
+    log.critical('seed:{}\tpw:{}\tpp:{}'.format(seed, pw, pp))
+    log.critical('wf:{}\tbw:{}'.format(wf, bw))
+    while cars:
+        c = cars.pop(0)
+        if len(orders) == 0:
+            continue
+        minsc = 0
+        bestr = None
+        best_state = None
+
+        xi = float(X)/len(orders)
+        yi = float(Y)/len(orders)
+        med = (xi, yi)
+        for r in orders:
+            d = dist(r.p_s, c.p_f)
+
+            framme = d + c[0]
+            waste = d + max(0, r.t_s - framme)
+            lastarr = r.t_f - dist(r.p_s, r.p_f)
+            if framme > lastarr: continue
+
+            pts_real = dist(r.p_s, r.p_f) + (B if framme <= r.t_s else 0)
+            pts = dist(r.p_s, r.p_f) + (bw*B if framme <= r.t_s else 0)
+
+            def w(p, ds, df, waste):
+                return float(p)**pp/((ds + wf*df)*(waste**pw + 1))
+
+            sc = w(pts, dist(med, r.p_s), dist(med, r.p_f), waste)
+            if sc > minsc:
+                minsc = sc
+                bestr = r
+                best_state = CarState(max(framme, r.t_s) + dist(r.p_s, r.p_f),
+                                      r.p_s, r.p_f, c.win + pts_real, c.i, r.i)
+        if bestr:
+            orders.remove(bestr)
+            cars.add(best_state)
+            CarStates[c.i].append(best_state)
+            X -= bestr.p_s[0]
+            Y -= bestr.p_s[1]
+
+    ch = True
+    while ch:
+        ch = False
+        for i, states in enumerate(CarStates):
+            maxsc = states[-1].win
+            cs = None
+            for r in orders:
+                lastarrive = r.t_f - dist(r.p_s, r.p_f)
+                n = len(states) - 1
+                while n >= 0 and states[n].t + dist(states[n].p_f, r.p_s) > lastarrive:
+                    n -= 1
+                if n < 0: continue
+                arrive = states[n].t + dist(states[n].p_f, r.p_s)
+                sc = dist(r.p_s, r.p_f) + (B if arrive <= r.t_s else 0) + states[n].win
+                if sc > maxsc:
+                    cs = CarState(max(arrive, r.t_s) + dist(r.p_s, r.p_f), r.p_s, r.p_f, sc, states[n].i, r.i)
+                    keep = n+1
+                    maxsc = sc
+            if cs:
+                ch = True
+                replc = rides[cs.order]
+                log.debug('Updating score: {} {}'.format(states[-1].win, maxsc))
+                for s in states[keep:]:
+                    ride = rides[s.order]
+                    orders.add(ride)
+                orders.remove(replc)
+                CarStates[i] = states[:keep] + [cs]
+
+    out = []
+
+    for v in CarStates:
+        v = v[1:]
+        s = str(len(v)) + ' '
+        s += ' '.join(map(lambda x: str(x.order), v))
+        out.append(s)
 
     assert (B, T, rides, C, R, N, F) == (ns.B, ns.T, ns.rides, ns.C, ns.R, ns.N, ns.F)
 
-    cars = [(0, 0, 0)]*F
-
-    orders = sorted(rides, key=lambda r:r.t_f - dist(r.p_s, r.p_f))
-
-    car2 = [[] for _ in range(F)]
-
-
-    for r in orders:
-        best = -1
-        v = 10000000000
-        bestc = -1
-        need2start = r.t_f - dist(r.p_s, r.p_f)
-        for i, c in enumerate(cars):
-            d = dist((c[1], c[2]), r.p_s)
-            if d + c[0] <= need2start:
-                if d + c[0] < v:
-                    v = d+c[0]
-                    best = i
-                    bestc = c
-        if best != -1:
-            t_f = max(d + bestc[0], r.t_s) + dist(r.p_s, r.p_f)
-            if t_f <= T:
-                car2[best].append(r.i)
-                cars[best] = (t_f, r.p_f[0], r.p_f[1])
-
-    out = []
-    for v in car2:
-        s = str(len(v)) + ' '
-        s += ' '.join(map(str, v))
-        out.append(s)
     return '\n'.join(out)
 
 
@@ -68,15 +129,14 @@ def show(out):
     # TODO: Print the solution here
     print(out)
 
+
 def score(inp, out):
     ns = parse(inp)
     B, T, rides, C, R, N, F = ns.B, ns.T, ns.rides, ns.C, ns.R, ns.N, ns.F
 
-    bonus_miss, ride_miss, dist_miss = 0, 0, 0
+    bonus_miss, dist_miss = 0, 0
     ride_waste = 0
     tot_dist = 0
-
-    paths = []
 
     itr = (map(int, li.split()) for li in out.split('\n'))
     score = 0
@@ -88,10 +148,8 @@ def score(inp, out):
         assert len(ride_ids) == M
         cur_p = Point(0, 0)
         time = 0
-        path = [cur_p]
         for i, r in ((i, rides[i]) for i in ride_ids):
             assert i in ride_set
-            path.append(r.p_s)
             ride_set -= {i}
             start = max(time + r.p_s.dist(cur_p), r.t_s)
             ride_waste += r.p_s.dist(cur_p) + start - r.t_s
@@ -100,13 +158,13 @@ def score(inp, out):
             else:
                 bonus_miss += 1
             dist = r.p_s.dist(r.p_f)
+            if start + dist > r.t_f:
+                print('{} {} {}'.format(start, dist, r.t_f))
             assert start + dist <= r.t_f
             cur_p = r.p_f
             tot_dist += dist
             score += dist
             time = start + dist
-            path.append(cur_p)
-        paths.append(path)
 
     assert (B, T, rides, C, R, N, F) == (ns.B, ns.T, ns.rides, ns.C, ns.R, ns.N, ns.F)
 
@@ -118,50 +176,7 @@ def score(inp, out):
         print("F: {}, N: {}, B: {}".format(F, N, B))
         print("bonus_miss_ratio: {:.0f}%, bonus_miss_score: {}, ride_miss: {}, dist_miss: {}".format(100*float(bonus_miss)/N, bonus_miss_score, len(ride_set), dist_miss))
         print("ride_waste: {} ({:.0f}%)".format(ride_waste, (ride_waste * 100.) / (ride_waste + tot_dist)))
-        #show(out)
-
-    if __name__ == "__main__" and args.s:
-        from matplotlib.figure import Figure
-        from matplotlib.axes import Axes
-        from matplotlib.lines import Line2D
-        from matplotlib.backends.backend_agg import FigureCanvasAgg
-        import numpy as np
-
-        def norm_pair(p):
-            return (float(p[0]) / R, float(p[1]) / C)
-
-        fig = Figure(figsize=[16 * 4, 16 * 4])
-        ax = Axes(fig, [.1, .1, .8, .8])
-        fig.add_axes(ax)
-        for path in paths:
-            for i, (prev, nxt) in enumerate(zip(path[0:], path[1:])):
-                prev_norm, nxt_norm = norm_pair(prev), norm_pair(nxt)
-                line = Line2D((prev_norm[0], nxt_norm[0]), (prev_norm[1], nxt_norm[1]),
-                              color='blue' if i % 2 else 'orange')
-                ax.add_line(line)
-
-        zeros = []
-
-        #for ride in (rides[i] for i in set(range(N)) - ride_set):
-        for ride in (rides[i] for i in ride_set):
-            prev_norm, nxt_norm = norm_pair(ride.p_s), norm_pair(ride.p_f)
-            t = float(ride.t_s) / T
-            #print(t, ride.t_s)
-            line = Line2D((prev_norm[0], nxt_norm[0]), (prev_norm[1], nxt_norm[1]),
-                          color=np.array([0, 1, 1]) + np.array([1, 0, 0])*t)
-            ax.add_line(line)
-
-        for ride in rides:
-            zeros.append(list(ride.p_s) + list(ride.p_f) + [ride.t_s, ride.t_f])
-
-        with open("zeros.csv", "w") as f:
-            for z in zeros:
-                f.write(",".join(map(str, z)) + "\n")
-
-
-        canvas = FigureCanvasAgg(fig)
-        canvas.print_figure("line_ex.png")
-
+        # show(out)
 
     return score
 
@@ -209,3 +224,4 @@ if __name__ == '__main__':
 
         print('{} {}'.format(inpf, ansf))
         print(score(inp, ans))
+
