@@ -7,6 +7,7 @@ from sortedcontainers import SortedList
 
 Ride = namedtuple('Ride', ['i', 'p_s', 'p_f', 't_s', 't_f'])
 Coord = namedtuple('Point', ['x', 'y'])
+CarState = namedtuple('CarState', ['t', 'p_s', 'p_f', 'win', 'i', 'order'])
 
 
 class Point(Coord):
@@ -21,106 +22,120 @@ def parse(inp):
 
     return argparse.Namespace(B=B, T=T, rides=rides, C=C, R=R, N=N, F=F)
 
+
 def dist(a, b):
     return abs(a[0] - b[0]) + abs(a[1] - b[1])
+
 
 def solve(seed, inp, log):
     # TODO: Solve the problem
     random.seed(seed)
     ns = parse(inp)
     B, T, rides, C, R, N, F = ns.B, ns.T, ns.rides, ns.C, ns.R, ns.N, ns.F
-    
-    assert (B, T, rides, C, R, N, F) == (ns.B, ns.T, ns.rides, ns.C, ns.R, ns.N, ns.F)
-
-    cars = SortedList([(0, 0, 0, i) for i in range(F)])
 
     orders = set(rides)
 
-    car2 = [[] for _ in range(F)]
-
-    no = 0
     X = sum(r.p_s[0] for r in orders)
     Y = sum(r.p_s[1] for r in orders)
-    carss = [0]*F
-    lastsc = [0]*F
-    
-    
+
+    CarStates = [[CarState(0, Point(0, 0), Point(0, 0), 0, i, -1)] for i in range(F)]
+    cars = SortedList([CarStates[i][0] for i in range(F)])
+    pw = 1 + 4*random.random()
+    pp = 0.5 + 0.5*random.random()
+    wf = 1 + 5*random.random()
+    bw = 2*random.random()
+
+    log.critical('seed:{}\tpw:{}\tpp:{}'.format(seed, pw, pp))
+    log.critical('wf:{}\tbw:{}'.format(wf, bw))
     while cars:
         c = cars.pop(0)
         if len(orders) == 0:
             continue
-        i = c[-1]
-        log.debug(i)
         minsc = 0
         bestr = None
-        sframme = None
-        target = (random.randint(0, R-1), random.randint(0, C-1))
+        best_state = None
 
         xi = float(X)/len(orders)
         yi = float(Y)/len(orders)
-        w = 1 # 0.5 + random.random()
+        med = (xi, yi)
         for r in orders:
-            d = dist(r.p_s, (c[1],c[2]))
-            
+            d = dist(r.p_s, c.p_f)
+
             framme = d + c[0]
             waste = d + max(0, r.t_s - framme)
             lastarr = r.t_f - dist(r.p_s, r.p_f)
             if framme > lastarr: continue
 
             pts_real = dist(r.p_s, r.p_f) + (B if framme <= r.t_s else 0)
-            pts = dist(r.p_s, r.p_f) + (B if framme <= r.t_s else 0)
-
-            # fac = random.random()*10
+            pts = dist(r.p_s, r.p_f) + (bw*B if framme <= r.t_s else 0)
 
             # sc = float(pts)/(waste*fac+ dist(r.p_s, r.p_f))
-            #sc = float(pts)/(dist((xi, yi), r.p_s)*(waste + 1)) if no > 0 else float(dist(target, r.p_s))/max(r.t_s - framme, 1)
-            sc = float(pts)/((dist((xi, yi), r.p_s) + dist((xi, yi), r.p_f))*(waste + 1))
-            #sc = float(pts)/((dist((xi, yi), r.p_f))*(waste + 1))
+            # sc = float(pts)/(dist((xi, yi), r.p_s)*(waste + 1)) if no > 0 else float(dist(target, r.p_s))/max(r.t_s - framme, 1)
+            # sc = float(pts)/((dist((xi, yi), r.p_f))*(waste + 1))
+
+            def w(p, ds, df, waste):
+                return float(p)**pp/((ds + wf*df)*(waste**pw + 1))
+
+            sc = w(pts, dist(med, r.p_s), dist(med, r.p_f), waste)
             if sc > minsc:
                 minsc = sc
                 bestr = r
-                sframme = framme
-                pts2 = pts_real
+                best_state = CarState(max(framme, r.t_s) + dist(r.p_s, r.p_f),
+                                      r.p_s, r.p_f, c.win + pts_real, c.i, r.i)
         if bestr:
-            car2[i].append(bestr.i)
             orders.remove(bestr)
-            carss[i] = c
-            lastsc[i] = pts2
-            c = (max(sframme, bestr.t_s) + dist(bestr.p_s, bestr.p_f), bestr.p_f[0], bestr.p_f[1], c[-1])
-            cars.add(c)
+            cars.add(best_state)
+            CarStates[c.i].append(best_state)
             X -= bestr.p_s[0]
             Y -= bestr.p_s[1]
-    
 
     out = []
-    for i, c in enumerate(car2):
-        r1 = rides[c[-2]]
-        r2 = rides[c[-1]]
-        maxsc = 0
-        br = None
-        for r in orders:
-            arrive = carss[i][0] + dist(r1.p_f, r.p_s)
-            if arrive + dist(r.p_s, r.p_f) <= r.t_f:
-                sc = dist(r.p_s, r.p_f) + (B if arrive <= r.t_s else 0)
+
+    ch = True
+    while ch:
+        ch = False
+        for i, states in enumerate(CarStates):
+            maxsc = states[-1].win
+            cs = None
+            for r in orders:
+                lastarrive = r.t_f - dist(r.p_s, r.p_f)
+                n = len(states) - 1
+                while n >= 0 and states[n].t + dist(states[n].p_f, r.p_s) > lastarrive:
+                    n -= 1
+                if n < 0: continue
+                arrive = states[n].t + dist(states[n].p_f, r.p_s)
+                sc = dist(r.p_s, r.p_f) + (B if arrive <= r.t_s else 0) + states[n].win
                 if sc > maxsc:
-                    br = r
+                    cs = CarState(max(arrive, r.t_s) + dist(r.p_s, r.p_f), r.p_s, r.p_f, sc, states[n].i, r.i)
+                    keep = n+1
                     maxsc = sc
-        if maxsc > lastsc[i]:
-            log.warning('Updating score: {} {}'.format(lastsc[i], maxsc))
-            orders.add(r2)
-            orders.remove(br)
-            c[-1] = br.i
-                    
-    for v in car2:
+            if cs:
+                ch = True
+                replc = rides[cs.order]
+                log.debug('Updating score: {} {}'.format(states[-1].win, maxsc))
+                for s in states[keep:]:
+                    ride = rides[s.order]
+                    orders.add(ride)
+                orders.remove(replc)
+                CarStates[i] = states[:keep] + [cs]
+                p, t = Point(0, 0), 0
+
+
+    for v in CarStates:
+        v = v[1:]
         s = str(len(v)) + ' '
-        s += ' '.join(map(str, v))
+        s += ' '.join(map(lambda x: str(x.order), v))
         out.append(s)
+
+    assert (B, T, rides, C, R, N, F) == (ns.B, ns.T, ns.rides, ns.C, ns.R, ns.N, ns.F)
+
     return '\n'.join(out)
 
 
 def show(out):
     # TODO: Print the solution here
     print(out)
+
 
 def score(inp, out):
     ns = parse(inp)
@@ -150,6 +165,8 @@ def score(inp, out):
             else:
                 bonus_miss += 1
             dist = r.p_s.dist(r.p_f)
+            if start + dist > r.t_f:
+                print('{} {} {}'.format(start, dist, r.t_f))
             assert start + dist <= r.t_f
             cur_p = r.p_f
             tot_dist += dist
@@ -166,7 +183,7 @@ def score(inp, out):
         print("F: {}, N: {}, B: {}".format(F, N, B))
         print("bonus_miss_ratio: {:.0f}%, bonus_miss_score: {}, ride_miss: {}, dist_miss: {}".format(100*float(bonus_miss)/N, bonus_miss_score, len(ride_set), dist_miss))
         print("ride_waste: {} ({:.0f}%)".format(ride_waste, (ride_waste * 100.) / (ride_waste + tot_dist)))
-        #show(out)
+        # show(out)
 
     return score
 
