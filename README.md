@@ -1,19 +1,29 @@
-# Template for Google Hash Code
-to make it easier to deploy an incremental approach
+# Google Hash Code 2018
+Team Cache Flows solution.
 
-Run a testinstance on the format `in/$testcase.in` with your own solver by:
+We use [exoji2e's hashcode template](https://github.com/exoji2e/hashcode-template)
 
-`python main.py --nsspec $file:$score:$solve $testcase` where 
-- `$file` is the file with your functions `$score` and `$solve`
-- `$score` is the function name of your scoring function
-- `$solve` is the function name of your solution function
+run it with `pypy main -l critical $testcase` for each $testcase in the `in/` folder.
 
-If you don't give `main` the `--nsspec` argument, the default is set to `solve:score:solve`, so you can just start working in `solve.py`.
+Score during the competition, giving us the 62nd place:
 
-`main.py` will handle file-io, save the solution that gets maximal score to the `submission`-folder, set up logging, set up randomization, etc.
+|Testcase | Score|
+|---|---:|
+|A| 10|
+|B| 176820|
+|C| 15830792|
+|D| 11796328|
+|E| 21463693|
+|sum| 49,267,243|
 
-## Nice to have for the competition:
-- `pypy2` faster execution, because of JiT compilation to C
-    + `brew install pypy`
-- `sortedcontainers` sorted datastructures for greedy approaches:
-    + `pypy -m pip install sortedcontainers`
+
+After the competition we did some clean ups and improvmenets resluting in:
+
+|Testcase | Score|
+|---|---:|
+|A| 10|
+|B| 176820|
+|C| 15846882|
+|D| 11981111|
+|E| 21465945|
+|sum| 49,470,825|
