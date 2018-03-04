@@ -28,7 +28,6 @@ def dist(a, b):
 
 
 def solve(seed, inp, log):
-    # TODO: Solve the problem
     random.seed(seed)
     ns = parse(inp)
     B, T, rides, C, R, N, F = ns.B, ns.T, ns.rides, ns.C, ns.R, ns.N, ns.F
@@ -69,10 +68,6 @@ def solve(seed, inp, log):
             pts_real = dist(r.p_s, r.p_f) + (B if framme <= r.t_s else 0)
             pts = dist(r.p_s, r.p_f) + (bw*B if framme <= r.t_s else 0)
 
-            # sc = float(pts)/(waste*fac+ dist(r.p_s, r.p_f))
-            # sc = float(pts)/(dist((xi, yi), r.p_s)*(waste + 1)) if no > 0 else float(dist(target, r.p_s))/max(r.t_s - framme, 1)
-            # sc = float(pts)/((dist((xi, yi), r.p_f))*(waste + 1))
-
             def w(p, ds, df, waste):
                 return float(p)**pp/((ds + wf*df)*(waste**pw + 1))
 
@@ -88,8 +83,6 @@ def solve(seed, inp, log):
             CarStates[c.i].append(best_state)
             X -= bestr.p_s[0]
             Y -= bestr.p_s[1]
-
-    out = []
 
     ch = True
     while ch:
@@ -118,8 +111,8 @@ def solve(seed, inp, log):
                     orders.add(ride)
                 orders.remove(replc)
                 CarStates[i] = states[:keep] + [cs]
-                p, t = Point(0, 0), 0
 
+    out = []
 
     for v in CarStates:
         v = v[1:]
@@ -141,7 +134,7 @@ def score(inp, out):
     ns = parse(inp)
     B, T, rides, C, R, N, F = ns.B, ns.T, ns.rides, ns.C, ns.R, ns.N, ns.F
 
-    bonus_miss, ride_miss, dist_miss = 0, 0, 0
+    bonus_miss, dist_miss = 0, 0
     ride_waste = 0
     tot_dist = 0
 
